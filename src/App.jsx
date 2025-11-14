@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, ArrowRight, CheckCircle2, ExternalLink } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 // Logo URL - will be loaded from the public folder
 const LOGO_URL = '/effilor-logo.jpg';
@@ -250,10 +251,7 @@ const App = () => {
     setTimeout(() => generatePDF(), 500);
   };
 
-  const generatePDF = async () => {
-    // Import jsPDF dynamically
-    const { jsPDF } = await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-    
+  const generatePDF = () => {
     const doc = new jsPDF();
     const results = calculateResults();
     const topStrength = getTopStrength();
@@ -367,7 +365,7 @@ const App = () => {
 
   // Logo Component
   const Logo = ({ size = 'large' }) => {
-    const dimensions = size === 'large' ? { width: '300px', height: 'auto' } : { width: '150px', height: 'auto' };
+    const dimensions = size === 'large' ? { width: '300px', height: 'auto' } : { width: '120px', height: 'auto' };
     return (
       <img 
         src={LOGO_URL} 
@@ -378,9 +376,9 @@ const App = () => {
     );
   };
 
-  // Header with small logo (for all screens except welcome)
+  // Header with small logo (for all screens except welcome) - centered and smaller
   const Header = () => (
-    <div className="absolute top-4 left-4 z-10">
+    <div className="w-full flex justify-center py-4">
       <Logo size="small" />
     </div>
   );
