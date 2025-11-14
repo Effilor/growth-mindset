@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, ArrowRight, CheckCircle2, ExternalLink } from 'lucide-react';
 
+// Logo URL - will be loaded from the public folder
+const LOGO_URL = '/effilor-logo.jpg';
+
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState('welcome');
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -242,16 +245,84 @@ const App = () => {
   const handleEmailSubmit = (e) => {
     e.preventDefault();
     console.log('Lead captured:', userData, answers);
-    // Here you would integrate with your email capture system
     setCurrentScreen('thankyou');
     // Trigger PDF download
-    generatePDF();
+    setTimeout(() => generatePDF(), 500);
   };
 
-  const generatePDF = () => {
-    // In a real implementation, this would generate an actual PDF
-    // For now, we'll just alert the user
-    alert('PDF download would trigger here. In production, this will be a properly formatted PDF report.');
+  const generatePDF = async () => {
+    // Import jsPDF dynamically
+    const { jsPDF } = await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    
+    const doc = new jsPDF();
+    const results = calculateResults();
+    const topStrength = getTopStrength();
+    const priorityArea = getPriorityArea();
+    
+    // Add Effilor branding
+    doc.setFontSize(24);
+    doc.setTextColor(61, 61, 122); // #3D3D7A
+    doc.text('Effilor Consulting Services', 20, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(107, 61, 122); // #6B3D7A
+    doc.text('Growth Mindset Assessment Report', 20, 30);
+    
+    // Add user info
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Prepared for: ${userData.name}`, 20, 40);
+    if (userData.company) {
+      doc.text(`Organization: ${userData.company}`, 20, 45);
+    }
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, userData.company ? 50 : 45);
+    
+    // Overall Score
+    const yPos = userData.company ? 65 : 60;
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text('Overall Growth Mindset Score', 20, yPos);
+    
+    doc.setFontSize(36);
+    doc.setTextColor(107, 61, 122);
+    doc.text(`${results.percentageScore}%`, 20, yPos + 15);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text(`Level: ${results.level.name}`, 20, yPos + 25);
+    
+    // Pillar Scores
+    doc.setFontSize(14);
+    doc.text('Pillar Breakdown', 20, yPos + 40);
+    
+    doc.setFontSize(10);
+    let pillarY = yPos + 50;
+    Object.entries(results.pillarScores).forEach(([pillar, score]) => {
+      const percentage = Math.round((score / 16) * 100);
+      const level = getPillarLevel(score);
+      doc.text(`${pillar}: ${score}/16 (${percentage}%) - ${level.name}`, 20, pillarY);
+      pillarY += 8;
+    });
+    
+    // Key Insights
+    doc.setFontSize(14);
+    doc.text('Key Insights', 20, pillarY + 10);
+    
+    doc.setFontSize(10);
+    doc.text(`Top Strength: ${topStrength[0]}`, 20, pillarY + 20);
+    doc.text(`Score: ${topStrength[1]}/16 (${Math.round((topStrength[1] / 16) * 100)}%)`, 20, pillarY + 27);
+    
+    doc.text(`Priority Area: ${priorityArea[0]}`, 20, pillarY + 37);
+    doc.text(`Score: ${priorityArea[1]}/16 (${Math.round((priorityArea[1] / 16) * 100)}%)`, 20, pillarY + 44);
+    
+    // Add footer
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('© 2024 Effilor Consulting Services. All rights reserved.', 20, 280);
+    doc.text('For more information, visit effilor.com', 20, 285);
+    
+    // Save the PDF
+    doc.save(`Growth-Mindset-Assessment-${userData.name.replace(/\s+/g, '-')}.pdf`);
   };
 
   const results = currentScreen === 'results' || currentScreen === 'email' || currentScreen === 'thankyou' ? calculateResults() : null;
@@ -294,15 +365,35 @@ const App = () => {
     return pillars.reduce((min, curr) => curr[1] < min[1] ? curr : min);
   };
 
+  // Logo Component
+  const Logo = ({ size = 'large' }) => {
+    const dimensions = size === 'large' ? { width: '300px', height: 'auto' } : { width: '150px', height: 'auto' };
+    return (
+      <img 
+        src={LOGO_URL} 
+        alt="Effilor Consulting Services" 
+        style={dimensions}
+        className="object-contain"
+      />
+    );
+  };
+
+  // Header with small logo (for all screens except welcome)
+  const Header = () => (
+    <div className="absolute top-4 left-4 z-10">
+      <Logo size="small" />
+    </div>
+  );
+
   // Welcome Screen
   if (currentScreen === 'welcome') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
         <div className="max-w-4xl mx-auto px-4 py-12">
           <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold mb-2">
-              <span style={{ color: '#3D3D7A' }}>Effilor</span>
-            </h1>
+            <div className="flex justify-center mb-6">
+              <Logo size="large" />
+            </div>
             <p style={{ color: '#6B3D7A' }} className="text-lg">
               <span className="font-bold">Eff</span>ective{' '}
               <span className="font-bold">I</span>ndividuals{' '}
@@ -387,7 +478,8 @@ const App = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-        <div className="max-w-4xl mx-auto px-4 py-12">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-12 pt-24">
           <div className="mb-8">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-600">
@@ -441,7 +533,8 @@ const App = () => {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <Header />
+        <div className="max-w-6xl mx-auto px-4 py-12 pt-24">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-2">
               <span style={{ color: '#3D3D7A' }}>Your Growth Mindset Results</span>
@@ -572,7 +665,8 @@ const App = () => {
   if (currentScreen === 'email') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-        <div className="max-w-2xl mx-auto px-4 py-12">
+        <Header />
+        <div className="max-w-2xl mx-auto px-4 py-12 pt-24">
           <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4 text-center">
               Get Your Complete Report
@@ -646,7 +740,8 @@ const App = () => {
   if (currentScreen === 'thankyou') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-        <div className="max-w-3xl mx-auto px-4 py-12">
+        <Header />
+        <div className="max-w-3xl mx-auto px-4 py-12 pt-24">
           <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 text-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-12 h-12 text-green-500" />
@@ -656,7 +751,7 @@ const App = () => {
               Thank You, {userData.name}!
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              Your Growth Mindset Assessment report is downloading now.
+              Your Growth Mindset Assessment report has been downloaded.
             </p>
 
             <div className="bg-purple-50 rounded-xl p-6 mb-8">
